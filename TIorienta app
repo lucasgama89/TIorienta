@@ -1,0 +1,158 @@
+// Main entry for the TIorienta application
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:async';
+
+void main() {
+  runApp(TIorientaApp());
+}
+
+class TIorientaApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'TIorienta',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('TIorienta'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              'Bem-vindo ao TIorienta!',
+              style: TextStyle(fontSize: 24),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RoutesScreen()),
+                );
+              },
+              child: Text('Ver Horários de Ônibus'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MapScreen()),
+                );
+              },
+              child: Text('Ver Mapa e Rotas'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Simulated backend service for bus schedules and locations
+class BackendService {
+  static Future<List<Map<String, String>>> fetchBusSchedules() async {
+    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+    return [
+      {'linha': 'A001', 'horario': '06:00 - 22:00'},
+      {'linha': 'A002', 'horario': '05:30 - 21:30'},
+      {'linha': 'A003', 'horario': '06:15 - 22:15'},
+    ];
+  }
+
+  static Future<Set<Marker>> fetchBusStops() async {
+    await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+    return {
+      Marker(
+        markerId: MarkerId('busStop1'),
+        position: LatLng(-1.455833, -48.504444),
+        infoWindow: InfoWindow(title: 'Ponto de Ônibus 1'),
+      ),
+      Marker(
+        markerId: MarkerId('busStop2'),
+        position: LatLng(-1.456500, -48.500000),
+        infoWindow: InfoWindow(title: 'Ponto de Ônibus 2'),
+      ),
+      Marker(
+        markerId: MarkerId('busStop3'),
+        position: LatLng(-1.460000, -48.505000),
+        infoWindow: InfoWindow(title: 'Ponto de Ônibus 3'),
+      ),
+    };
+  }
+}
+
+class RoutesScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Horários de Ônibus'),
+      ),
+      body: FutureBuilder<List<Map<String, String>>>(
+        future: BackendService.fetchBusSchedules(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar dados'));
+          } else {
+            final busSchedules = snapshot.data ?? [];
+            return ListView.builder(
+              itemCount: busSchedules.length,
+              itemBuilder: (context, index) {
+                final bus = busSchedules[index];
+                return ListTile(
+                  title: Text('Linha: ${bus['linha']}'),
+                  subtitle: Text('Horário: ${bus['horario']}'),
+                );
+              },
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class MapScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Mapa e Rotas'),
+      ),
+      body: FutureBuilder<Set<Marker>>(
+        future: BackendService.fetchBusStops(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Erro ao carregar mapa'));
+          } else {
+            final busStops = snapshot.data ?? {};
+            return GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: LatLng(-1.455833, -48.504444), // Latitude e longitude de Belém
+                zoom: 12,
+              ),
+              markers: busStops,
+            );
+          }
+        },
+      ),
+    );
+  }
+}
